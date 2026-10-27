@@ -1049,6 +1049,7 @@ void backend_present_now(NvnTexture *t, uint64_t frame) {
         bool shot = win_shot && (long)frame + 1 == win_shot;
         extern int runtime_input_take_capture(void);
         shot = runtime_input_take_capture() || shot;
+        if (shot) mkdir("build", 0755);
         vk_frame_end(shot ? "build/window.png" : NULL);
         if (shot && getenv("LARECOMP_EXIT_AFTER_SHOT")) exit_after_shot();
     } else {

@@ -33,7 +33,8 @@ Local changes:
   hint, ordinary LEA scaled additions, conservative vertex clip exits and W-scale
   registers. Unknown extended variants still fail with diagnostics.
 - `runtime/nvn/vulkan/device.c`: connect native screenshot requests and emit
-  integration-test completion statistics before terminating the test process.
+  integration-test completion statistics before terminating the test process;
+  create the screenshot directory on the first capture.
 - `runtime/nvn/tegra.c`: use one GOB in Y for 3D textures and select the tile
   depth using the depth-times-1.5 rule (maximum 16 GOBs). This fixes interleaved
   color-grading LUT slices. Public layout reference:
