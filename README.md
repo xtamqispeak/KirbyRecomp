@@ -8,6 +8,9 @@ contain tools and runtime source only. Game executables, assets, keys, generated
 code and precompiled game binaries are not distributed. The game code is translated
 and compiled locally from the files you provide. No package decryption is included.
 
+<img width="1275" height="714" alt="image" src="https://github.com/user-attachments/assets/aae73991-ecba-4447-a3f2-f21636bdde16" />
+
+
 ## Build and play
 
 1. Install **64-bit Python 3.12 or newer** and enable its Windows launcher or add it
