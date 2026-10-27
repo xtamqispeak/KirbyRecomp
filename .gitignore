@@ -25,3 +25,10 @@ __pycache__/
 *.pfx
 prod.keys
 title.keys
+/python/
+/kirby-setup.marker
+/kirby-setup.lock
+/kirby-setup-folders.txt
+/kirby-setup-payload.zip
+/SETUP-PAYLOAD-MANIFEST.json
+/setup.log

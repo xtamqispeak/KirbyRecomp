@@ -30,7 +30,8 @@ def validate(exefs,romfs):
     return report,module_folder
 
 def run(*arguments):
-    subprocess.run([sys.executable,*map(str,arguments)],cwd=ROOT,check=True)
+    subprocess.run([sys.executable,*map(str,arguments)],cwd=ROOT,check=True,
+                   stdout=sys.stdout,stderr=sys.stderr,**sr.host_process_options())
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)

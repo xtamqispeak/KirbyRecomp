@@ -3,15 +3,39 @@
 Experimental native Windows port of **Super Kirby Clash**, based on
 [LASRecomp](https://github.com/peiikai/LASRecomp)'s ARM64-to-C translator and Vulkan renderer.
 
-**You must supply your own dumped ExeFS and RomFS.** This repository and its releases
-contain tools and runtime source only. Game executables, assets, keys, generated game
+**You must supply your own dumped ExeFS and RomFS.** The setup EXE contains the
+open-source setup program, portable Python and runtime/build source. Game executables, assets, keys, generated game
 code and precompiled game binaries are not distributed. The game code is translated
 and compiled locally from the files you provide. No package decryption is included.
 
 <img width="1275" height="714" alt="image" src="https://github.com/user-attachments/assets/aae73991-ecba-4447-a3f2-f21636bdde16" />
 
+## Windows setup EXE
 
-## Build and play
+Download **KirbyRecompSetup-v0.2.0-alpha.exe** and its SHA-256 file from the release.
+The setup EXE includes portable Python; no system Python installation or
+administrator rights are needed. It is currently unsigned.
+
+1. Run the setup EXE and choose an empty installation folder. The default is
+   `%LOCALAPPDATA%\KirbyRecomp`. An existing setup installation can be updated in place.
+2. Browse to your own extracted **ExeFS** and **RomFS** folders.
+3. Click **Build game**. Setup installs the compiler/build dependencies from PyPI,
+   downloads native libraries from the official MSYS2 repository, validates your
+   dump, translates the game code and compiles your local executable. The first
+   build needs internet access, several GB of disk space, and several minutes.
+4. Click **Play game**. Reopen `KirbyRecompSetup.exe` in your installation folder
+   for future launches. Your selected folders are remembered after a successful build.
+
+**Install tools** can prepare the environment before selecting a dump. **Cancel**
+stops the current tool/compiler process group; verified generated objects can be
+reused on the next attempt. Diagnostic output is also written to `setup.log`.
+Keep your RomFS at the selected location. Close the game before rebuilding.
+
+Requires Windows 10/11 x64 with built-in `tar.exe`, an AVX2/FMA-capable CPU and a
+Vulkan 1.3 GPU. Only RTX 4070 SUPER has been verified. The setup EXE is precompiled;
+the game's executable is built locally from your files. NSP/XCI import is not included.
+
+## Build and play from source
 
 1. Install **64-bit Python 3.12 or newer** and enable its Windows launcher or add it
    to PATH. Use Windows 10/11 x64, an **AVX2/FMA-capable CPU**, and a **Vulkan 1.3 GPU**
@@ -107,6 +131,8 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe tools/fetch_native_deps.py
 .\.venv\Scripts\python.exe tools/test_shaders.py
 .\.venv\Scripts\python.exe tools/test_textures.py
+.\.venv\Scripts\python.exe tools/build_installer.py
+.\.venv\Scripts\python.exe tools/test_installer.py
 ```
 
 Tests use original synthetic fixtures. The CPU smoke test compares 30 translated

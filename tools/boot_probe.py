@@ -15,6 +15,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'tools'))
 import switchrecomp as sr
 
 
@@ -116,7 +117,7 @@ def main():
         command += ['-DPORT_GRAPHICS', '-D_FILE_OFFSET_BITS=64', '-D_CRT_RAND_S',
                     str(native / 'lib/libvulkan-1.dll.a'), str(native / 'lib/libshaderc_shared.dll.a')]
     print('Linking development boot probe', flush=True)
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, stdout=sys.stdout, stderr=sys.stderr, **sr.host_process_options())
     for library in (native / 'bin').glob('*.dll'):
         shutil.copy2(library, target / library.name)
     if args.build_only:

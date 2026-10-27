@@ -9,8 +9,8 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 TOP_FILES = {'.gitignore', '.gitattributes', 'README.md', 'LICENSE', 'requirements.txt',
              'requirements-build.txt', 'switchrecomp.py', 'Build Kirby.cmd', 'Play Kirby.cmd'}
-SOURCE_DIRS = {'runtime', 'tools', 'tests', 'vendor', 'docs', '.github'}
-EXTENSIONS = {'.c', '.cpp', '.h', '.py', '.md', '.txt', '.hlsl', '.yml', '.yaml'}
+SOURCE_DIRS = {'runtime', 'tools', 'tests', 'vendor', 'docs', '.github', 'installer'}
+EXTENSIONS = {'.c', '.cpp', '.h', '.py', '.md', '.txt', '.hlsl', '.yml', '.yaml', '.manifest', '.rc'}
 
 
 def main():

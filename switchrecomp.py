@@ -27,6 +27,11 @@ PROFILES = {
 MODULE_NAMES = ['rtld', 'main'] + [f'subsdk{i}' for i in range(10)] + ['sdk']
 
 
+def host_process_options():
+    """Keep compiler subprocesses from opening console windows in the setup GUI."""
+    return {'creationflags': subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {}
+
+
 def save_json(path, data):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -245,7 +250,8 @@ def generate_game(args):
             dest = staging / module['name']
             command = [sys.executable, str(VENDOR / 'tools' / 'gen.py'), module['name'], str(source),
                        module['base'], str(dest), '--simd', 'c', '--chunk', str(args.chunk)]
-            subprocess.run(command, check=True)
+            subprocess.run(command, check=True, stdout=sys.stdout, stderr=sys.stderr,
+                           **host_process_options())
             translation = json.loads((dest / 'translation.json').read_text())
             translations.append(translation)
         report['translations'] = translations
@@ -282,7 +288,7 @@ def compile_objects(args):
         if sha256(VENDOR / 'runtime' / name) != digest:
             raise ValueError('Runtime headers changed; regenerate C before compiling')
     compiler = compiler_command(args.cc)
-    compiler_version = subprocess.check_output(compiler + ['--version'], text=True)
+    compiler_version = subprocess.check_output(compiler + ['--version'], text=True, **host_process_options())
     tasks = []
     for relative, digest in manifest['generated_sources'].items():
         source = (out / relative).resolve()
@@ -300,7 +306,7 @@ def compile_objects(args):
         tasks.append((relative, obj, command, stamp, identity))
     def compile_one(task):
         relative, obj, command, stamp, identity = task
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, **host_process_options())
         log = obj.with_suffix('.log')
         log.write_text(result.stdout + result.stderr, encoding='utf-8')
         if result.returncode:

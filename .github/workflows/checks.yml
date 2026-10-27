@@ -17,3 +17,5 @@ jobs:
       - run: python tools/test_textures.py
       - run: python tools/fetch_native_deps.py
       - run: python tools/test_shaders.py
+      - run: python tools/build_installer.py
+      - run: python tools/test_installer.py

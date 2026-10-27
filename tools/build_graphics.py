@@ -40,7 +40,7 @@ def build(generated):
         stamp = obj.with_suffix('.build-id')
         if obj.exists() and stamp.exists() and stamp.read_text() == digest:
             return obj
-        result = subprocess.run(args, capture_output=True, text=True)
+        result = subprocess.run(args, capture_output=True, text=True, **sr.host_process_options())
         obj.with_suffix('.log').write_text(result.stdout + result.stderr)
         if result.returncode:
             raise RuntimeError(f'{source.name}:\n{result.stderr[:12000]}')

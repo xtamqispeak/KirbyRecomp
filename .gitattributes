@@ -6,3 +6,5 @@
 *.md text eol=lf
 *.yml text eol=lf
 *.cmd text eol=crlf
+*.manifest text eol=lf
+*.rc text eol=lf
