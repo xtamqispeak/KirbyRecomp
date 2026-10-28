@@ -18,6 +18,8 @@
 #include "probe_modules.h"
 #include "graphics_bridge.h"
 #include "kernel_runtime.h"
+#include "kirby_settings.h"
+#include "input_runtime.h"
 
 void runtime_stop(const char *, uint64_t, int) __attribute__((noreturn));
 Settings g_settings = {.aspect=ASPECT_ORIGINAL, .res_mode=1, .upscaler=UPSCALE_BILINEAR, .volume=1, .reverb=true};
@@ -34,7 +36,7 @@ void rt_unwind_point(void) {}
 int rt_reboot_requested(void) { return 0; }
 void rt_request_reboot(int kind) { (void)kind; runtime_stop("restart_requested",0,95); }
 const char *larecomp_version(void) { return "KirbyRecomp-dev"; }
-void settings_load(void) {}
+void settings_load(void) { kirby_settings_load(); g_settings.res_mode=RES_CUSTOM; g_settings.render_width=kirby_settings.render_width; g_settings.render_height=kirby_settings.render_height; g_settings.fullscreen=kirby_settings.fullscreen; }
 void settings_save(void) {}
 void settings_resolve_defaults(bool integrated) { g_gpu_integrated = integrated; }
 const char *settings_language(void) { return "en-US"; }
@@ -50,7 +52,8 @@ void plat_commit(uint64_t a,uint64_t n) { if(!VirtualAlloc((void *)(uintptr_t)a,
 int plat_written_pages(uint64_t a,uint64_t n,uint64_t *p,int max,uint64_t *page) { (void)a;(void)n;(void)p;(void)max;*page=4096;return -1; }
 int plat_protect(uint64_t a,uint64_t n,int permission) { DWORD old;return VirtualProtect((void *)(uintptr_t)a,n,permission==0?PAGE_NOACCESS:permission==1?PAGE_READONLY:PAGE_READWRITE,&old)?0:-1; }
 void plat_terminate(void) { fflush(stderr);TerminateProcess(GetCurrentProcess(),0); }
-void rt_window_icon(SDL_Window *window) { SDL_SetWindowTitle(window,"Super Kirby Clash Recomp — development"); }
+void kirby_window_size(int *w,int *h) {*w=kirby_settings.window_width;*h=kirby_settings.window_height;}
+void rt_window_icon(SDL_Window *window) { SDL_SetWindowTitle(window,"Super Kirby Clash Recomp - F1 Settings"); }
 void kernel_hang_hooks(bool (*check)(uint64_t,char*,size_t),void (*state)(const char*)) { (void)check;(void)state; }
 uint64_t kernel_current_thread_id(void) { return GetCurrentThreadId(); }
 uint64_t kernel_heap_size(void); // supplied by boot runtime
@@ -103,6 +106,7 @@ int runtime_hle_dispatch(Cpu *c) {
     return 0;
 }
 void runtime_graphics_init(void) {
+    settings_load();
     bootstrap_pc=PROBE_NVN_BOOTSTRAP;
     for(unsigned i=0;i<PROBE_MODULE_COUNT;++i){g_modules[i].name=probe_modules[i].name;g_modules[i].base=probe_modules[i].base;g_modules[i].size=probe_modules[i].size;}
     g_nmodules=PROBE_MODULE_COUNT;
@@ -112,7 +116,7 @@ void runtime_graphics_init(void) {
 }
 void guest_call(Cpu *c,uint64_t address) { uint64_t lr=c->x[30];c->x[30]=0;c->pc=address;rt_dispatch(c);c->x[30]=lr; }
 
-void pace_frame(void) { static __thread uint64_t last;uint64_t next=last+16666667,now=plat_now_ns();if(next>now)plat_sleep_until_ns(next);last=plat_now_ns(); }
+void pace_frame(void) { while(kirby_settings_open()) Sleep(10); static __thread uint64_t last;uint64_t next=last+1000000000ull/(kirby_settings.fps?kirby_settings.fps:60),now=plat_now_ns();if(next>now)plat_sleep_until_ns(next);last=next>now?next:now; }
 uint64_t pace_end_counter(const uint64_t *a,const uint64_t *b,uint64_t value){(void)a;(void)b;return value;}
 bool pace_is_slow(void){return false;}
 uint64_t pace_frames_over(void){return 0;}
@@ -140,15 +144,22 @@ bool input_user_blocked(const SDL_Event *e){(void)e;return false;}
 void input_cursor_event(const SDL_Event *e){(void)e;}
 void input_apply_background(void){}
 void input_load_user_mappings(void){}
-bool menu_handle_event(const SDL_Event *e){(void)e;return false;}
-bool menu_is_open(void){return false;}
-void menu_apply_window_requests(void *w){(void)w;}
+bool menu_handle_event(const SDL_Event *e){
+    extern SDL_Window *ui_window(void);
+    if(e->type==SDL_EVENT_KEY_DOWN && !e->key.repeat){
+        if(e->key.scancode==SDL_SCANCODE_F1){runtime_input_clear();kirby_settings_window(ui_window());return true;}
+        if(e->key.scancode==SDL_SCANCODE_F11){SDL_Window *w=ui_window();SDL_SetWindowFullscreen(w,!(SDL_GetWindowFlags(w)&SDL_WINDOW_FULLSCREEN));return true;}
+    }
+    return kirby_settings_open();
+}
+bool menu_is_open(void){return kirby_settings_open();}
+void menu_apply_window_requests(void *w){(void)w;kirby_settings_pump();}
 void menu_render(void *cmd,uint32_t w,uint32_t h){(void)cmd;(void)w;(void)h;}
 void menu_test_open(void){}
 static uint32_t vsync_handle;
 static uint64_t native_window;
 static unsigned __stdcall vsync_entry(void *arg) {
-    (void)arg;uint64_t next=plat_now_ns();for(;;){next+=16666667;plat_sleep_until_ns(next);runtime_event_set(vsync_handle,1);}return 0;
+    (void)arg;uint64_t next=plat_now_ns();for(;;){next+=1000000000ull/(kirby_settings.fps?kirby_settings.fps:60);plat_sleep_until_ns(next);runtime_event_set(vsync_handle,1);}return 0;
 }
 HLE_FUNC("_ZN2nn2vi10InitializeEv",vi_init){(void)c;}
 HLE_FUNC("_ZN2nn2vi8FinalizeEv",vi_fini){(void)c;}

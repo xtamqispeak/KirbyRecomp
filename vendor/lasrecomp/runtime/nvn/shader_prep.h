@@ -23,7 +23,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-enum { SR_FLIP_Y = 1, SR_DEPTH_MINUS_ONE = 2, SR_FLIP_X = 4 };
+enum { SR_FLIP_Y = 1, SR_DEPTH_MINUS_ONE = 2, SR_FLIP_X = 4, SR_DEPTH_CLAMP = 8 };
 
 typedef struct {
     char kind;               // 'G' graphics pipeline, 'C' compute program
@@ -120,7 +120,7 @@ void shader_prep_boot(const char *romfs);
 
 // ---- the shader caches' tag (Metal binary archive, Vulkan pipeline cache): this build, the translator, the prepared
 // objects' format and the GPU / driver; a cache with another tag is discarded (rebuilt as the game runs)
-#define SHADER_CACHE_VERSION 1  // (bump when what goes into the caches changes meaning)
+#define SHADER_CACHE_VERSION 2  // (bump when what goes into the caches changes meaning)
 void shader_cache_tag(char *out, size_t n, const char *gpu);       // gpu: device name, driver / OS version
 bool shader_cache_tag_ok(const char *tag_path, const char *tag);   // the cache's tag file says tag
 void shader_cache_tag_write(const char *tag_path, const char *tag);  // (written atomically)

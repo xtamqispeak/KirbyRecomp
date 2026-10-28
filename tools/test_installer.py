@@ -13,7 +13,7 @@ import switchrecomp as sr
 
 
 def main():
-    exe = ROOT / 'release/KirbyRecompSetup-v0.2.0-alpha.exe'
+    exe = ROOT / 'release/KirbyRecompSetup-v0.3.0-alpha.exe'
     data = exe.read_bytes()
     pe = struct.unpack_from('<I', data, 0x3c)[0]
     assert data[pe:pe+4] == b'PE\0\0'

@@ -12,7 +12,7 @@ and compiled locally from the files you provide. No package decryption is includ
 
 ## Windows setup EXE
 
-Download **KirbyRecompSetup-v0.2.0-alpha.exe** and its SHA-256 file from the release.
+Download **KirbyRecompSetup-v0.3.0-alpha.exe** and its SHA-256 file from the release.
 The setup EXE includes portable Python; no system Python installation or
 administrator rights are needed. It is currently unsigned.
 
@@ -98,6 +98,8 @@ resulting executable and relocated `.image` files contain your game's code/data.
 | Q / E | L / R |
 | Left / right Shift | ZL / ZR |
 | Escape / Tab | Plus / Minus |
+| F1 | Open native video settings |
+| F11 | Toggle fullscreen |
 | F12 | Save a screenshot to the local build's `build/window.png` |
 
 SDL controllers use Nintendo face-button positions (right=A, bottom=B).
@@ -107,13 +109,35 @@ Default save: `generated-kirby/probe/save/save_0/savedata.dat`.
 Default diagnostic log: `generated-kirby/probe/runtime.log`.
 Back up your save folder before changing builds.
 
+## Video settings
+
+Press **F1** in the game for the custom settings window. Choose independent window
+and render dimensions, fullscreen, and Original / 60 / 120 FPS. Click **Save settings**
+and restart the game. F11 toggles fullscreen immediately. The settings window pauses
+the main game loop. Choices are stored beside your local executable in
+`kirby-settings.ini`; saves are kept separately.
+
+Custom dimensions support widths of 320-7680 and heights of 180-4320 pixels.
+The game keeps its 16:9 composition, with bars for other window shapes. Render
+resolution changes the GPU targets, not just the window size.
+
+The **120 FPS option is experimental rendering at up to 120 frames per second**.
+Gameplay consumes fixed 60 Hz updates based on elapsed time; this avoids doubling
+movement and timers. There is no frame interpolation: motion driven by those fixed
+updates can still look like 60 FPS. Achieved frame rate depends on the scene and GPU.
+Timing overrides are enabled only for the checked main build
+`c9649e053bd7be2751ef0b00e7c03f5d59695b94`; other versions keep original timing.
+Original mode remains the default.
+
 ## Alpha status
 
 Verified locally: title screen, opening story, village dialogue and movement,
-quest menus, keyboard/controller input, game audio, and local save creation/reload.
-The three supplied modules translate into 79,391 native functions. The 3D color-LUT
-layout bug causing neon scene colors is fixed. Observed performance on the test PC
-is around 60 fps at the title and 30 fps in the village.
+quest menus, profile and shop panels, the first battle scene and its real-time
+timer, keyboard/controller input, game audio, and
+local save creation/reload. The three supplied modules translate into 79,391 native
+functions. The 3D color-LUT layout bug causing neon scene colors is fixed. Missing
+profile/shop UI was caused by an ignored depth-clamp command, now implemented in
+Vulkan. The shop's mipmap-query shaders are supported as well.
 
 **Full battles and later stages have not been validated.** Unknown required services
 or unsupported instructions can stop the runtime with a diagnostic. This is an
@@ -131,6 +155,7 @@ py -3 -m venv .venv
 .\.venv\Scripts\python.exe tools/fetch_native_deps.py
 .\.venv\Scripts\python.exe tools/test_shaders.py
 .\.venv\Scripts\python.exe tools/test_textures.py
+.\.venv\Scripts\python.exe tools/test_settings.py
 .\.venv\Scripts\python.exe tools/build_installer.py
 .\.venv\Scripts\python.exe tools/test_installer.py
 ```

@@ -467,6 +467,10 @@ void output_scale(double dw, double dh, bool reshape_allowed, double now, double
     }
     h = fmax(h, 0.1);  // (.25x of a small window)
     double ax = h * shape, ay = h;
+    if (mode == RES_CUSTOM && forced <= 0) {
+        ax = fmax(320, fmin(7680, g_settings.render_width)) / 1920.0;
+        ay = fmax(180, fmin(4320, g_settings.render_height)) / 1080.0;
+    }
     double cap = fmin(MAX_TEX / (1920.0 * ax), MAX_TEX / (1080.0 * ay));
     if (cap < 1.0) { ax *= cap; ay *= cap; }
     o->ax = ax; o->ay = ay;

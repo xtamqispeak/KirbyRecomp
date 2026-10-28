@@ -883,6 +883,33 @@ static void emit_tex(Ctx *c, uint64_t w, bool bindless) {
     write_tex_result(c, slot, call, mask, d, RZ, false, false);
 }
 
+// TMML.LOD: mipmap level query. Maxwell returns signed 8.8 fixed-point
+// components in the reverse order of GLSL textureQueryLod (unclamped, clamped).
+static void emit_tmml(Ctx *c, uint64_t w) {
+    int d = (int)bits(w, 0, 8), a = (int)bits(w, 8, 8);
+    uint32_t mask = (uint32_t)bits(w, 31, 4);
+    if (d == RZ || !mask) return;
+    if (!c->glsl || c->stage != STAGE_FRAGMENT || bits(w, 28, 1) ||
+        bits(w, 29, 2) != 1 || bits(w, 35, 1) || (mask & 12)) {
+        fail(c, "unsupported TMML form"); return;
+    }
+    // The instruction has no depth-compare flag; a later sample determines
+    // whether this 2D sampler is a shadow sampler, as with TXQ.
+    int slot = tex_slot(c, (uint32_t)bits(w, 36, 13), -1, false, false);
+    c->uses_rscale = true;
+    sp(&c->body, "    { float2 tmml_lod = textureQueryLod(t%d, uvs(float2(%s, %s), rscale[%d]));\n",
+       slot, F(R(a)), F(R(a == RZ ? RZ : a + 1)), slot + 1);
+    int n = 0;
+    for (int component = 0; component < 2; component++) if (mask & (1u << component)) {
+        int regno = d + n++;
+        if (regno < RZ) {
+            c->reg_used[regno] = 1;
+            sp(&c->body, "      r%d = uint(int(tmml_lod[%d] * 256.0f));\n", regno, component ^ 1);
+        }
+    }
+    sp(&c->body, "    }\n");
+}
+
 // ------------------------------------------------------------------ instruction translation
 // The game's light-culling compute shader (a 30x17 grid of 64-pixel tiles for the tiled lighting of interiors and
 // caves) turns a tile's pixel column into a view direction with the screen height alone: x = px * 2 / height -
@@ -1016,6 +1043,8 @@ static void emit_insn(Ctx *c, uint64_t w, uint32_t pc) {
         emit_tex(c, w, false);
     } else if (OPM(0xdeb8000000000000ull, 0xfff8000000000000ull)) {  // TEX.B (bindless)
         emit_tex(c, w, true);
+    } else if (OPM(0xdf58000000000000ull, 0xfff8000000000000ull)) {  // TMML.LOD
+        emit_tmml(c, w);
     } else if (OPM(0xdf48000000000000ull, 0xfff8000000000000ull)) {  // TXQ
         uint32_t index = (uint32_t)bits(w, 36, 13);
         int qt = (int)bits(w, 22, 6);

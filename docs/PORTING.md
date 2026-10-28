@@ -98,10 +98,39 @@ The game profanity system dictionary is absent from RomFS; the independent host
 fallback handles a small ASCII word list only. It does not reproduce Nintendo's
 language dictionaries.
 
-Remaining verification/work: exercise the first quest/battle and save restoration
-after completing it, check later stages,
+Remaining verification/work: complete and restore saves after quests, check later stages,
 handle additional services as observed, and broaden controller/device coverage.
 The source is a development port, not a validated complete-game release.
+
+## Profile/shop rendering and host video settings
+
+The blank profile and shop panels were submitted normally, with valid matrices,
+textures and alpha. Their orthographic depth is slightly less than -w. The game
+enables NVN depth clamp for these draws, but the inherited command recorder ignored
+that API. It now records the setting and includes it in Vulkan pipeline keys,
+pipeline memoization and prepared variants. Depth clamp remains per draw state;
+ordinary scene clipping is retained. Profile, shop categories and the weapon list
+have been inspected in private captures from a copied save.
+
+Four shop fragment shaders also needed TMML.LOD. The observed 2D query now uses
+GLSL textureQueryLod with Maxwell's reverse component order, signed 8.8 conversion
+and packed destination mask. Original synthetic fragment fixtures compile to SPIR-V
+and verify the emitted semantics. Native C tests undefine NDEBUG so optimized test
+builds actually execute their assertions.
+
+The F1 settings window stores independent render/window pixel dimensions and the
+frame-rate choice. Changes take effect on restart; F11 toggles fullscreen live.
+The original timing is the default. For the checked Kirby main build only,
+tools/game_hooks.py injects calls to original host timing functions into the user's
+generated source, validates its hashes, and updates the local manifest. No game
+instructions or generated C are included in the release.
+
+Both forced modes choose the game's one-vsync drawing mode and replace the two
+original frame-scheduler waits with the host presentation pacer. 120 FPS samples
+elapsed time once per frame. All fixed-step consumers see the same whole number of
+60 Hz updates, including frames with zero updates. This retains integer game logic;
+it does not interpolate transforms or promise 120 distinct animation poses.
+The clock is not globally sped up. Unknown builds retain their original timing.
 
 ## Format references
 

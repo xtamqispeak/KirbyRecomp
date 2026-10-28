@@ -62,7 +62,10 @@ def prepare(out):
         init = base + nso.dyn[12] if nso.dyn.get(12) else 0
         init_array = base + nso.dyn[25] if nso.dyn.get(25) else 0
         records.append(f'{{"{name}", "{name}.image", {base}ull, {nso.size}ull, {init}ull, {init_array}ull, {nso.dyn.get(27, 0)}ull, {name}_fn_addrs, &{name}_fn_count, {name}_fn_ptrs}}')
-    header = '\n'.join(declarations)
+    from game_hooks import apply
+    supported = apply(out, manifest)
+    sr.save_json(out / 'manifest.json', manifest)
+    header = '#define PROBE_KIRBY_TIMING_SUPPORTED ' + str(int(supported)) + '\n' + '\n'.join(declarations)
     header += '\ntypedef struct { const char *name, *image; uint64_t base, size, init, init_array, init_array_size; const uint64_t *addresses, *count; const GuestFn *functions; } ProbeModule;\n'
     header += 'static const ProbeModule probe_modules[] = {\n' + ',\n'.join(records) + '\n};\n'
     header += f'#define PROBE_MODULE_COUNT {len(records)}\n#define PROBE_START {start}ull\n#define PROBE_TITLE_ID 0x{manifest["expected_title_id"]}ull\n'
@@ -115,7 +118,7 @@ def main():
         # Driver name selects C++ linking, but the host sources remain C.
         command[command.index('-std=c11')] = '-std=gnu11'
         command += ['-DPORT_GRAPHICS', '-D_FILE_OFFSET_BITS=64', '-D_CRT_RAND_S',
-                    str(native / 'lib/libvulkan-1.dll.a'), str(native / 'lib/libshaderc_shared.dll.a')]
+                    '-lgdi32', '-luser32', str(native / 'lib/libvulkan-1.dll.a'), str(native / 'lib/libshaderc_shared.dll.a')]
     print('Linking development boot probe', flush=True)
     subprocess.run(command, check=True, stdout=sys.stdout, stderr=sys.stderr, **sr.host_process_options())
     for library in (native / 'bin').glob('*.dll'):

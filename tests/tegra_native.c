@@ -1,4 +1,5 @@
 /* Original coordinate LUT: no game textures or executable data. */
+#undef NDEBUG
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>

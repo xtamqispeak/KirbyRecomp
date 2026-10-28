@@ -923,6 +923,7 @@ static struct {
     NvnDescPool *tpool, *spool;
     float viewport[16][4];
     int32_t scissor[16][4];
+    bool depth_clamp;
     float depth_range[16][2];
     float blend_color[4];
     uint32_t stencil_ref[2], stencil_mask[2], stencil_vmask[2];
@@ -2211,7 +2212,7 @@ typedef struct {
     uint32_t attr_mask;
     uint32_t stride[17], divisor[17], used_streams;
     uint8_t blend[8][8];
-    uint8_t blend_on, a2c, topo_class, poly_fill;
+    uint8_t blend_on, a2c, topo_class, poly_fill, depth_clamp;
     uint32_t write_mask[8];
 } PipeKey;
 
@@ -2234,7 +2235,7 @@ struct PipeMemo {
     int nattrib, nstream;
     VkFormat color[8], depth, stencil;
     uint32_t attrib[16], stream[16][2], rt_fmt[8];
-    uint8_t blend[8][8], blend_on, a2c, cls, poly_fill;
+    uint8_t blend[8][8], blend_on, a2c, cls, poly_fill, depth_clamp;
     Pipe *pp;
     VtxLayout vl;  // the layout pipe_key_fill made from these inputs (dynamic vertex input leaves it out of pp's key)
 };
@@ -2269,7 +2270,7 @@ typedef struct {
     uint32_t channel_mask;
     uint8_t blend_on;               // color state blend enables
     const uint8_t (*blend)[8];
-    uint8_t a2c, topo_class, poly_fill;
+    uint8_t a2c, topo_class, poly_fill, depth_clamp;
 } PipeIn;
 
 // vl (optional): the vertex layout, also when the key leaves it out (dynamic vertex input)
@@ -2330,6 +2331,7 @@ static void pipe_key_fill(PipeKey *k, Prog *pr, const PipeIn *in, const VkFormat
     k->a2c = in->a2c;
     k->topo_class = in->topo_class;
     k->poly_fill = in->poly_fill;
+    k->depth_clamp = in->depth_clamp;
 }
 
 // A pipeline's create info from its key (the structures point into each other and into the key: filled in place)
@@ -2377,7 +2379,7 @@ static void pipe_ci_fill(PipeCI *c, const PipeKey *k) {
                                                      .topology = topo_class_base(k->topo_class)};
     c->vs = (VkPipelineViewportStateCreateInfo){.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, .viewportCount = 1, .scissorCount = 1};
     c->rs = (VkPipelineRasterizationStateCreateInfo){.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                                                     .polygonMode = k->poly_fill ? VK_POLYGON_MODE_FILL : VK_POLYGON_MODE_LINE, .lineWidth = 1};
+                                                     .depthClampEnable = k->depth_clamp, .polygonMode = k->poly_fill ? VK_POLYGON_MODE_FILL : VK_POLYGON_MODE_LINE, .lineWidth = 1};
     c->ms = (VkPipelineMultisampleStateCreateInfo){.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
                                                    .rasterizationSamples = (VkSampleCountFlagBits)k->samples, .alphaToCoverageEnable = k->a2c};
     c->ds = (VkPipelineDepthStencilStateCreateInfo){.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
@@ -5186,7 +5188,7 @@ static void prep_pipeline(void *arg) {
         if (asp & VK_IMAGE_ASPECT_STENCIL_BIT) stencil = b;
     }
     const PipeIn in = {r->attrib, r->nattrib, r->stream, r->nstream, r->color, r->channel_mask, r->blend_on, r->blend,
-                       r->a2c, r->topo, r->poly_fill};
+                       r->a2c, r->topo, r->poly_fill, (r->flags & SR_DEPTH_CLAMP) != 0};
     pipe_key_fill(&a->pp->k, pr, &in, color, ncolor, depth, stencil, r->samples ? r->samples : 1, NULL);
     uint64_t ph = hash_words(0xcbf29ce484222325ull, &a->pp->k, sizeof a->pp->k);
     if (!ph) ph = 1;
@@ -5453,7 +5455,7 @@ static void rec_from_state(ShaderRec *r, bool flip_x, uint32_t mode) {
     r->kind = 'G';
     r->vs = shader_stage_hash(&st.program->stages[0]);
     r->fs = shader_stage_hash(&st.program->stages[1]);
-    r->flags = (nvn_window_origin() == 0 ? SR_FLIP_Y : 0) | (nvn_depth_mode() == 0 ? SR_DEPTH_MINUS_ONE : 0) | (flip_x ? SR_FLIP_X : 0);
+    r->flags = (nvn_window_origin() == 0 ? SR_FLIP_Y : 0) | (nvn_depth_mode() == 0 ? SR_DEPTH_MINUS_ONE : 0) | (flip_x ? SR_FLIP_X : 0) | (st.depth_clamp ? SR_DEPTH_CLAMP : 0);
     r->nattrib = (uint8_t)(st.nattrib < 16 ? st.nattrib : 16);
     memcpy(r->attrib, st.attrib, sizeof r->attrib[0] * r->nattrib);
     r->nstream = (uint8_t)(st.nstream < 16 ? st.nstream : 16);
@@ -5520,6 +5522,7 @@ static int pk_diff(const PipeKey *a, const PipeKey *b, char *out, size_t n) {
     PKD(a->blend_on != b->blend_on, " blend_on %#x/%#x;", a->blend_on, b->blend_on);
     PKD(a->a2c != b->a2c, " a2c %u/%u;", a->a2c, b->a2c);
     PKD(a->topo_class != b->topo_class, " topo %u/%u;", a->topo_class, b->topo_class);
+    PKD(a->depth_clamp != b->depth_clamp, " depth_clamp %u/%u;", a->depth_clamp, b->depth_clamp);
     PKD(a->poly_fill != b->poly_fill, " fill %u/%u;", a->poly_fill, b->poly_fill);
     if (!d && memcmp(a, b, sizeof *a)) {  // (no field differs: other bytes - padding)
         const uint8_t *x = (const uint8_t *)a, *y = (const uint8_t *)b;
@@ -5643,7 +5646,7 @@ static void draw_(CmdRec *r, bool indexed) {
     uint32_t rt_fmt[8] = {0};
     for (int i = 0; i < st.rt.ncolor && i < 8; i++) rt_fmt[i] = st.rt.color[i] ? st.rt.color[i]->format : 0;
     const PipeIn in = {st.attrib, st.nattrib, (const uint32_t (*)[2])st.stream, st.nstream, rt_fmt, st.channel_mask,
-                       st.color_state[0], (const uint8_t (*)[8])st.blend, st.ms[0xC] != 0, cls, st.poly[2] != 1};
+                       st.color_state[0], (const uint8_t (*)[8])st.blend, st.ms[0xC] != 0, cls, st.poly[2] != 1, st.depth_clamp};
     bool memo_on = key_memo_on();
     if (memo_on && !pr->pmemo) pr->pmemo = calloc(1, sizeof *pr->pmemo);
     struct PipeMemo *pm = memo_on ? pr->pmemo : NULL;
@@ -5655,7 +5658,7 @@ static void draw_(CmdRec *r, bool indexed) {
     Pipe *pp;
     if (pm && pm->pp && pm->gen == key_gen && pm->ncolor == pass_ncolor && pm->samples == pass_samples && pm->depth == pass_depth &&
         pm->stencil == pass_stencil && pm->nattrib == st.nattrib && pm->nstream == st.nstream && pm->channel_mask == in.channel_mask &&
-        pm->blend_on == in.blend_on && pm->a2c == in.a2c && pm->cls == in.topo_class && pm->poly_fill == in.poly_fill &&
+        pm->blend_on == in.blend_on && pm->a2c == in.a2c && pm->cls == in.topo_class && pm->poly_fill == in.poly_fill && pm->depth_clamp == in.depth_clamp &&
         !memcmp(pm->color, pass_color, npc * sizeof pass_color[0]) && !memcmp(pm->rt_fmt, rt_fmt, sizeof rt_fmt) &&
         !memcmp(pm->attrib, st.attrib, (size_t)nat * 4) && !memcmp(pm->stream, st.stream, (size_t)nst * 8) &&
         !memcmp(pm->blend, st.blend, sizeof pm->blend)) {
@@ -5695,7 +5698,7 @@ static void draw_(CmdRec *r, bool indexed) {
         if (pm) {
             pm->gen = key_gen; pm->ncolor = pass_ncolor; pm->samples = pass_samples; pm->depth = pass_depth; pm->stencil = pass_stencil;
             pm->nattrib = st.nattrib; pm->nstream = st.nstream; pm->channel_mask = in.channel_mask; pm->blend_on = in.blend_on;
-            pm->a2c = in.a2c; pm->cls = in.topo_class; pm->poly_fill = in.poly_fill;
+            pm->a2c = in.a2c; pm->cls = in.topo_class; pm->poly_fill = in.poly_fill; pm->depth_clamp = in.depth_clamp;
             memcpy(pm->color, pass_color, sizeof pm->color); memcpy(pm->rt_fmt, rt_fmt, sizeof pm->rt_fmt);
             memcpy(pm->attrib, st.attrib, sizeof pm->attrib); memcpy(pm->stream, st.stream, sizeof pm->stream);
             memcpy(pm->blend, st.blend, sizeof pm->blend);
@@ -6086,10 +6089,10 @@ static void draw_(CmdRec *r, bool indexed) {
 }
 
 static void debug_draw(Prog *pr, CmdRec *r, bool indexed) {
-    LOG("[draw] %s inst %llu mode %llu count %llu prog vs=%llx fs=%llx | vs cb %#x fs cb %#x | rt %d", indexed ? "e" : "a",
+    LOG("[draw] %s inst %llu mode %llu count %llu prog vs=%llx fs=%llx | vs cb %#x fs cb %#x | clamp %d rt %d", indexed ? "e" : "a",
         (unsigned long long)(indexed ? r->x[6] : r->x[4]), (unsigned long long)r->x[0], (unsigned long long)r->x[2],
         (unsigned long long)st.program->stages[0].code_addr, (unsigned long long)st.program->stages[1].code_addr,
-        pr->vi->cbuf_mask, pr->fi->cbuf_mask, st.rt.ncolor);
+        pr->vi->cbuf_mask, pr->fi->cbuf_mask, st.depth_clamp, st.rt.ncolor);
     for (int i = 0; i < st.rt.ncolor; i++) if (st.rt.color[i]) LOG(" %ux%u/f%#x", st.rt.color[i]->width, st.rt.color[i]->height, st.rt.color[i]->format);
     if (st.rt.depth) LOG(" d%#x %p", st.rt.depth->format, (void *)st.rt.depth);
     LOG(" | vp %.0f %.0f %.0f %.0f | attrs %#x blend %#x ds %02x%02x%02x poly %02x%02x chmask %08x\n", st.viewport[0][0], st.viewport[0][1],
@@ -6103,11 +6106,19 @@ static void debug_draw(Prog *pr, CmdRec *r, bool indexed) {
             for (int k = 0; k < 16; k++) LOG(" %.4g", v[k]);
             LOG("\n");
         }
-        for (int c = 0; c < 18; c++) {
-            if (!((pr->fi->cbuf_mask >> c) & 1) || !st.ubuf[1][c].addr) continue;
-            const float *u = (const float *)(uintptr_t)st.ubuf[1][c].addr;
-            LOG("[draw]   fcb%d %llx size %u:", c, (unsigned long long)st.ubuf[1][c].addr, (unsigned)st.ubuf[1][c].size);
-            for (int k = 0; k < 96 && k * 4 < (int)st.ubuf[1][c].size; k++) LOG(" %.6g", u[k]);
+        for (int stage = 0; stage < 2; stage++) for (int c = 1; c < 18; c++) {
+            ShaderInfo *info = stage ? pr->fi : pr->vi;
+            if (!((info->cbuf_mask >> c) & 1)) continue;
+            Range range = {0};
+            if (c == 1) {
+                NvnShaderStage *shader = &st.program->stages[stage];
+                range = (Range){shader->code_addr + shader->const_offset, shader->const_size};
+            } else if (c >= 3) range = st.ubuf[stage][c - 3];
+            if (!range.addr) continue;
+            const float *u = (const float *)(uintptr_t)range.addr;
+            LOG("[draw]   %ccb%d %llx size %u:", stage ? 'f' : 'v', c,
+                (unsigned long long)range.addr, (unsigned)range.size);
+            for (int k = 0; k < 160 && k * 4 < (int)range.size; k++) LOG(" %.6g", u[k]);
             LOG("\n");
         }
     }
@@ -7050,6 +7061,7 @@ static void exec_list(uint64_t handle, int depth) {
             }
             break;
         }
+        case CMD_SET_DEPTH_CLAMP: st.depth_clamp = r->x[0] != 0; break;
         case CMD_SET_POLYGON_OFFSET: memcpy(st.poly_offset, r->f, sizeof st.poly_offset); break;
         case CMD_SET_PRIMITIVE_RESTART: st.prim_restart = r->x[0] != 0; st.restart_index = (uint32_t)r->x[1]; break;
         case CMD_SET_COPY_STRIDES: st.copy_row_stride = r->x[0]; st.copy_image_stride = r->x[1]; break;

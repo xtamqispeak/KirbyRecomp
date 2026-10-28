@@ -500,6 +500,7 @@ static void create_device(void) {
     b->textureCompressionBC = h->textureCompressionBC;
     b->shaderInt64 = h->shaderInt64;
     b->depthBiasClamp = h->depthBiasClamp;
+    if (!h->depthClamp) FATAL("Kirby requires Vulkan depthClamp support for its interface.\n");
     b->depthClamp = h->depthClamp;
     b->largePoints = h->largePoints;
     b->wideLines = h->wideLines;
@@ -1246,7 +1247,9 @@ void ui_window_init(void) {
     input_apply_background();  // controllers in the background: "Allow background inputs" (Controls tab)
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) FATAL("SDL_Init: %s\n", SDL_GetError());
     input_load_user_mappings();
+    extern void kirby_window_size(int *, int *);
     int win_w = 1280, win_h = 720;
+    kirby_window_size(&win_w, &win_h);
     if (getenv("LARECOMP_WINDOW")) sscanf(getenv("LARECOMP_WINDOW"), "%dx%d", &win_w, &win_h);
     SDL_WindowFlags wflags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
     if (getenv("LARECOMP_HIDDEN")) wflags |= SDL_WINDOW_HIDDEN;

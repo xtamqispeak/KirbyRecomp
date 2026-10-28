@@ -32,3 +32,6 @@ title.keys
 /kirby-setup-payload.zip
 /SETUP-PAYLOAD-MANIFEST.json
 /setup.log
+
+kirby-settings.ini
+kirby-settings.ini.tmp

@@ -256,7 +256,7 @@ def generate_game(args):
             translations.append(translation)
         report['translations'] = translations
         report['generated_sources'] = {str(p.relative_to(staging).as_posix()): sha256(p) for p in sorted(staging.rglob('*.c'))}
-        report['runtime_headers'] = {p.name: sha256(p) for p in sorted((VENDOR / 'runtime').glob('*.h'))}
+        report['runtime_headers'] = {name: sha256(VENDOR / 'runtime' / name) for name in GENERATED_HEADERS}
         save_json(staging / 'manifest.json', report)
         os.replace(staging, out)
     print(f'Generated C in {out}; a game runtime is still required.')
@@ -281,11 +281,16 @@ def architecture_flags(compiler):
     return []
 
 
+# Generated code includes only this CPU/SIMD ABI. Renderer settings do not
+# invalidate game code when updating an existing own-dump installation.
+GENERATED_HEADERS = ('cpu.h', 'simd.h', 'simd_fp.h')
+
+
 def compile_objects(args):
     out = Path(args.generated).resolve()
     manifest = json.loads((out / 'manifest.json').read_text(encoding='utf-8'))
-    for name, digest in manifest['runtime_headers'].items():
-        if sha256(VENDOR / 'runtime' / name) != digest:
+    for name in GENERATED_HEADERS:
+        if sha256(VENDOR / 'runtime' / name) != manifest['runtime_headers'].get(name):
             raise ValueError('Runtime headers changed; regenerate C before compiling')
     compiler = compiler_command(args.cc)
     compiler_version = subprocess.check_output(compiler + ['--version'], text=True, **host_process_options())

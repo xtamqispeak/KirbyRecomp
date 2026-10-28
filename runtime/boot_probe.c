@@ -11,8 +11,13 @@
 #include "kernel_runtime.h"
 #ifdef PORT_GRAPHICS
 #include "graphics_bridge.h"
+#include "kirby_settings.h"
 #include <process.h>
 int ui_run(void);
+#endif
+
+#ifndef PORT_GRAPHICS
+int kirby_frame_hook(Cpu *cpu, uint64_t site) { (void)cpu; (void)site; return 0; }
 #endif
 
 #define GUEST_LO 0x7000000000ull
@@ -253,7 +258,20 @@ static unsigned __stdcall game_main(void *argument) {
     stop("sdk_start_returned", last_fn, 87);
 }
 #endif
-int main(void) {
+int main(int argc,char **argv) {
+#ifdef PORT_GRAPHICS
+    if(argc==2 && !strcmp(argv[1],"--settings")) {
+        kirby_settings_load();
+        if(!SDL_Init(SDL_INIT_VIDEO))return 1;
+        SDL_Window *parent=SDL_CreateWindow("KirbyRecomp settings",32,32,SDL_WINDOW_HIDDEN);
+        if(!parent){SDL_Quit();return 1;}
+        kirby_settings_window(parent);
+        while(kirby_settings_open()){SDL_PumpEvents();kirby_settings_pump();SDL_Delay(8);}
+        SDL_DestroyWindow(parent);SDL_Quit();return 0;
+    }
+#else
+    (void)argc;(void)argv;
+#endif
     setvbuf(stderr, NULL, _IONBF, 0);
     // Resolve local images beside the executable, including launches from Explorer.
     wchar_t executable_path[32768];

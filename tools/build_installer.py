@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import switchrecomp as sr
 from package_source import TOP_FILES, SOURCE_DIRS, EXTENSIONS
 
-VERSION = 'v0.2.0-alpha'
+VERSION = 'v0.3.0-alpha'
 PYTHON = ('python-3.13.17-embed-amd64.zip',
           'https://www.python.org/ftp/python/3.13.17/python-3.13.17-embed-amd64.zip',
           '9e35319bffedab8b36ad44d8f377cb4f1733bcec257a0b6d04d94f01486ddb38')

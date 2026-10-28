@@ -70,7 +70,7 @@ static int prepare_directory(void) {
     if(result!=ERROR_SUCCESS&&result!=ERROR_ALREADY_EXISTS&&result!=ERROR_FILE_EXISTS)return error_text(L"Could not create the installation folder.");
     HANDLE file=CreateFileW(marker,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
     if(file==INVALID_HANDLE_VALUE)return error_text(L"The installation folder is not writable.");
-    const char text[]="KirbyRecomp setup v0.2.0-alpha\r\n";DWORD wrote;
+    const char text[]="KirbyRecomp setup v0.3.0-alpha\r\n";DWORD wrote;
     int ok=WriteFile(file,text,sizeof(text)-1,&wrote,NULL);CloseHandle(file);
     return ok?0:error_text(L"Could not write the installation marker.");
 }
@@ -234,7 +234,7 @@ int WINAPI wWinMain(HINSTANCE app,HINSTANCE previous,PWSTR command,int show) {
     wchar_t *slash=wcsrchr(own,L'\\');
     if(slash){*slash=0;combine(marker,own,L"kirby-setup.marker");if(exists(marker))wcscpy(root,own);}
     WNDCLASSW cls={.lpfnWndProc=procedure,.hInstance=app,.hCursor=LoadCursor(NULL,IDC_ARROW),.hbrBackground=(HBRUSH)(COLOR_BTNFACE+1),.lpszClassName=L"KirbyRecompSetup"};RegisterClassW(&cls);
-    window=CreateWindowW(cls.lpszClassName,L"KirbyRecomp Setup v0.2.0-alpha",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,CW_USEDEFAULT,CW_USEDEFAULT,px(810),px(672),NULL,NULL,app,NULL);
+    window=CreateWindowW(cls.lpszClassName,L"KirbyRecomp Setup v0.3.0-alpha",WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX,CW_USEDEFAULT,CW_USEDEFAULT,px(810),px(672),NULL,NULL,app,NULL);
     control(L"STATIC",L"KirbyRecomp - build from your own dumped game files",0,20,16,760,25,0);
     control(L"STATIC",L"Windows x64 | AVX2/FMA CPU | Vulkan 1.3 GPU | Internet for first setup",0,20,48,760,23,0);
     control(L"STATIC",L"Installation folder (Python is included; no administrator rights needed)",0,20,85,760,22,0);

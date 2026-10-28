@@ -28,6 +28,7 @@ extern const char *const g_language_names[N_LANGUAGES];  // for the menu ("Auto"
 typedef struct {
     int aspect;          // ASPECT_*: unlocked = fill the window (wider/taller views), original = 16:9 with bars
     bool fullscreen;
+    int render_width, render_height; // Kirby host: independent custom render pixel dimensions
     int res_mode;        // RES_MATCH, 1..4 (N x the Switch's 1080p), RES_DYNAMIC, RES_Q75/50/25 (share of the display)
     bool res_auto;       // never chosen: the default for this GPU (settings_resolve_defaults); saved as "auto"
     int upscaler;        // UPSCALE_*: how a lower internal resolution reaches the window (MetalFX: macOS, FSR 1: Windows)
@@ -91,6 +92,7 @@ enum { N_ENEMY_COLOUR_MODES = 3, N_SCREEN_FILTERS = 4 };
 extern const char *const g_screen_filters[N_SCREEN_FILTERS];  // (the menu's names)
 extern const char *const g_enemy_colour_modes[N_ENEMY_COLOUR_MODES];  // (the menu's names)
 
+enum { RES_CUSTOM = 13 };
 extern Settings g_settings;
 
 void settings_load(void);

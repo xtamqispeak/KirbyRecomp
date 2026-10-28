@@ -19,6 +19,7 @@ def main():
     sr.save_json(ROOT/'reports/shader-tests.json',{'result':'passed','synthetic_only':True,'checks':[
         'conditional primitive clip exit preserves subsequent position exports',
         'synthetic vertex shader compiles to SPIR-V',
-        'ordinary LEA compiles to SPIR-V; extended carry form rejects explicitly']})
+        'ordinary LEA compiles to SPIR-V; extended carry form rejects explicitly',
+        'fragment TMML LOD: component mask, reversed signed 8.8 values and SPIR-V' ]})
 
 if __name__=='__main__':main()

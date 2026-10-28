@@ -20,6 +20,9 @@ static SDL_Gamepad *gamepad;
 static float vibration[2][4];
 static int rumble_changed;
 static volatile LONG capture_request;
+void runtime_input_clear(void){
+    AcquireSRWLockExclusive(&input_lock);keys=buttons=0;memset(axes,0,sizeof axes);ReleaseSRWLockExclusive(&input_lock);
+}
 int runtime_input_take_capture(void){return InterlockedExchange(&capture_request,0)!=0;}
 void runtime_input_rumble(uint32_t handle,const float value[4]){
     unsigned side=(handle>>16)&0xff;if(side>1)return;

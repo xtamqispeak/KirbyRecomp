@@ -24,7 +24,7 @@ def build(generated):
     vendor = sr.VENDOR / 'runtime'
     headers=sorted(vendor.rglob('*.h'))+sorted((ROOT/'runtime').glob('*.h'))+[generated/'probe/probe_modules.h']
     header_digest = hashlib.sha256(''.join(sr.sha256(p) for p in headers).encode()).hexdigest()
-    sources = [vendor / 'nvn' / name for name in SOURCES] + [ROOT / 'runtime/graphics_bridge.c', ROOT / 'runtime/input_runtime.c']
+    sources = [vendor / 'nvn' / name for name in SOURCES] + [ROOT / 'runtime/graphics_bridge.c', ROOT / 'runtime/input_runtime.c', ROOT / 'runtime/kirby_settings.c']
     def compile_one(source):
         obj = out / (source.stem + '.o')
         compiler = sr.compiler_command()
